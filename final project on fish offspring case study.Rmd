@@ -1,0 +1,461 @@
+---
+title: "Final Project Template"
+author: "<u7630977>"
+date: "<due date>"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This project was completed with provided guidelines and questions. However, **all the code and answers were created by me**. 
+
+## Instructions
+
+Throughout the semester, you have been working toward your final project through the completion of smaller, marked assignments. Your task here is to combine that prior work into a single report. 
+
+No addition analysis is required, but you are encouraged to revise your previous plots and models in response to the feedback on previous assignments.
+
+We expect you to update the discussion so that this document reads as a single, coherent report.
+
+>>> Complete the template that follows to produce such a report, submitting both the knitted .html and the .Rmd file, *keeping all code chunks visible*.
+
+## Packages
+
+```{r load-packages}
+# Use this code chunk to load any libraries being used
+library(readr)
+library(skimr)
+library(tidyverse)
+library(glmmTMB)
+library(ggResidpanel)
+library(emmeans)
+library(DHARMa)
+library(janitor)
+library(ggbeeswarm)
+library(car)
+```
+
+
+## Background and Motivation
+
+Assignment #4 asked you to provide a description of your paper. This work forms the basis of what is required here. Describe your study here, including the rationale, the research question, and the experimental set-up. Be sure to:
+
+    - Describe experimental factors of interest.
+    - Define the primary outcome measure(s).
+    - Mention potential sources of variation that result from the experimental set-up.
+
+__Background:__
+
+People have long been intrigued by the influence of age on fish mating success. Numerous studies have explored this topic, yielding diverse and sometimes contradictory findings. Some studies suggest that older males exhibit higher mating success (e.g., De Luca and Cocroft 2008; Fischer et al. 2008; Pérez-Staples et al. 2010; Somasekar and Krishna 2011), while others report lower success in certain aspects (e.g., Dean et al. 2010; Kanuga et al. 2011; Johnson et al. 2018; Rodríguez-Muñoz et al. 2019). In contrast, some studies find no significant relationship between male age and successful mating (e.g., Sawadogo et al. 2013).
+
+However, most of these studies have not concerned the effect of age and mating experience that could bring in the research, reducing the precision of outcomes. Since older fishes were tend to have richer reproductive histories, which probably have a certain impact to the result, will add noise to the outomce.
+
+In this study, the impact of age and mating experience of fish on reproductive success will be analysed by allowing competitive interaction of male fish for female fish, then quantifying each male’s contribution to paternity. To enhance the accuracy, possible variation that associate with the outcomes will also be accounted, including the male body reproductive organ size.
+
+__Research Question:__
+
+Assessing the Separate and Interactive Impacts of Male Fish Age and Mating History on the Success of Paternal Relationships
+
+__Aims:__
+
+1. Effect of Male Fish Age on Offspring Count: Investigate whether the age of male fish has an independent impact on the number of offspring they produce.
+
+2. Impact of Mating History on Offspring Count: Examine whether the mating history (or lack thereof) of a male fish independently influences the number of offspring he fathers.
+
+3. Interaction between Age and Mating History: Explore whether male fish age and mating history interact to jointly affect the number of offspring they sire.
+
+__Potential Source of Variation: __
+
+1. Different heterozygosity: higher heterozygosity tend to have greater fertilization success
+
+2. Genetic Diversity: different individuals may vary on reproductive potential
+
+3. Enviromental factor: minor changes in water condition (quality, temperature, etc) may affect the breeding habit and growth of individuals
+
+4. Measurement error: errors might occur when measuring the body and gonad length, and the number of progeny.
+  
+### Experimental Design
+
+Describe the design of your study. If your paper contains an experiment, include how the experiment was designed, including:
+
+    - What are the experimental units?
+    - How were treatments assigned to experimental units?
+  
+Optional: try using ggplot to visually communinicate the experimental design. 
+
+This experiment utilizes Eastern Mosquito Fish (G. holbrooki) as the research species to investigate the impact of age and mating history on paternal relationships’ success.
+
+To assess how age and mating history influence male reproductive success, the experiment involved breeding both “young” and “old” male fish. These male fish were subsequently randomly assigned to one of two mating treatments: “mating” or “naive.” The fish were maintained in single-sex 90-liter tanks at a controlled temperature of 28±1°C under a 14:10-hour light-dark cycle, with a population density of fewer than 50 individuals per tank. They were fed twice daily, with fish flakes in the morning and Artemia salina nauplii in the afternoon.
+
+__Generate age influence group__
+
+The steps for producing “old” male oriental Eastern mosquito fish are as follows: First, 400 adult breeding fish (200 of each gender) were placed into a 90-liter breeding tank for 18 days to facilitate mating. After this period, the 200 females were separated and moved to a new breeding tank to create a more suitable environment for offspring production. Subsequently, within 15 days, newborn fish larvae from each brood were transferred to 90-liter stock aquariums, with a population density of fewer than 50 fish larvae per tank.
+
+Twelve weeks later, we repeated the process with another 400 fish to produce “young” males. After such a process, “old” males exhibited a 12–13 week age difference compared to their matched “young” counterparts on average.
+
+From 4 weeks after birth, offspring are examined three times a week to transfer individuals of different genders to different fish tanks to prevent inter-individual mating in order to maintain their virginity.
+
+__Generate mating history influence group__
+
+To producing the “naive” males, they were provided with visual access to the females. However, to prevent physical contact between them, a mesh barrier was placed within the 7-liter tank. This separation allowed for visual interaction between males and females while ensuring that there were no physical obstacles hindering their ability to mate freely. Meanwhile, the “mating” males can have physical contact with female without barrier.
+
+We established a total of 64 blocks, each consisting of four males, representing each of the four age/mating treatment groups (“old/mated,” “young/mated” “old/naive,” and “young/naive”; totaling 256 males). Each block was accompanied by a female, which had been captured from the wild three months prior and kept in a female-only aquarium until its utilization in the experiment.
+
+__Treatment experience__
+
+After each mating experiment, males were kept separately for a period to recover. The offspring produced during these experiments were also collected and genetically analyzed to determine their paternity using SNP genotyping. Additionally, the males’ heterozygosity was calculated as a measure of genetic diversity.
+
+At the end of the mating treatment, all males are kept alone for 5 days to supplement their sperm.
+
+__Successful test of paternal relationship__
+
+We tested men’s ability to obtain a paternity. Four males in the 64 blocks used above were placed in a 90-liter tank with five virgin females. After 18 days, the male was removed and euthanized to collect tissue samples for DNA extraction.
+
+The female is transferred to a separate 1-L tank, with a mesh barrier at one end of each tank, creating a shelter for the fry. The tank is inspected twice a day. Once the female gives birth, she and her offspring are euthanized and tissue samples are collected (DNA is collected from the entire body of the adult’s tail muscles/tail fins and fry (excluding the head). To assign paternity, we then genotyped single-nucleotide polymorphisms (SNPs) for all the putative sires, females and offspring using a commercial service DArTseq (Kilian et al. 2012). Record the number of each male offspring and record it.
+
+
+  
+## Analysis Plan
+
+Assignment #5 asked you to simulate some data for your study. We have since expanded our toolbox to include generalised linear models, providing a framework for accommodating other variable types (e.g., binary data, count data, percentages).
+
+Updating Assignment #5 as necessary, simulate potential data for your study with a hypothesised effect for your experimental factor.
+
+```{r simulate-data}
+# Set a random seed for reproducibility
+set.seed(123)
+
+# Define parameters
+n <- 256  # Sample size of the male fish
+mean_gono_length <- 0.6 # The mean value of the nuisance factor Geno_length
+mean_body_length <- 2.3 # The mean value of the nuisance factor Body_length
+coefficient_gono_length <- 2 # Geno_length slope parameter
+coefficient_body_length <- 1.5 # Body_length slope parameter
+coefficient_body_gono_length <- 3 # Interaction slope parameter between Geno_length and Body_length
+standard_deviation <- 1  # Standard deviation for random noise
+B1 <- 6  # Coefficient for mated & old group
+B2 <- 4  # Coefficient for naive & old group
+B3 <- 2  # Coefficient for mated & young group
+B4 <- .2  # Coefficient for naive & young group
+
+# Create a variable which contains a sequence of fish numbers from 1 to n
+fish_number <- 1:n
+
+# Generate predictor variables (Gono_length and Body_length) using the normal distribution and round to 2 decimal places
+Gono_length <- round(rnorm(n, mean_gono_length, sd = 0.2), 2)
+Body_length <- round(rnorm(n, mean_body_length, sd = 0.4), 2)
+
+# Create the mating and age variables and corresponding groups
+mated <- factor(rep(c("mated", "naive", "mated", "naive"), 64))
+age <- factor(rep(c("old", "old", "young", "young"), 64))
+Group <- interaction(age, mated)
+
+# Simulate the response variable (offspring_numbers)
+# This response variable (offspring_numbers) has impacted by the two nuisance factor (Gono_length and Body_length) and the interaction between them.
+# So we add linear relationship between the response variable (offspring_numbers) and two nuisance factor (Gono_length and Body_length)  
+# The matingeriment factor mating and age also has impact on the response variable (offspring_numbers)
+# Among the four groups has different mean
+# So we use the indicator variable and the corresponding parameter to describe the mean difference between four groups
+# At last we generate the variance by using the normal distribution.
+
+offspring_numbers <- round(2 +
+                             coefficient_gono_length * Gono_length +
+                             coefficient_body_length * Body_length +
+                             coefficient_body_gono_length * Gono_length * Body_length + 
+                             B1 * (mated == "mated" & age == "old") +
+                             B2 * (mated == "naive" & age == "old") +
+                             B3 * (mated == "mated" & age == "young") +
+                             B4 * (mated == "naive" & age == "young") +
+                             rnorm(n, mean = 1, sd = standard_deviation))
+
+
+# At this point we created the model between the response variable, matingerimental variable and nuisance factor
+# In mating matingeriments, nearly 40% of fish did not successfully give offspring because they did not attract females.
+# To be closer to the facts of biology, we randomly disrupt data and assign 40% of the dataset to 0.
+
+# Calculate the number of observations that should be 0 (40% of n)
+num_zeros <- round(0.6 * n)
+
+# Randomly select the indices of observations to be set to 0
+zero_indices <- sample(seq_len(n), size = num_zeros)
+
+# Set the selected indices to 0
+offspring_numbers[zero_indices] <- 0
+
+# Create a data frame with the simulated data
+simulated_data <- data.frame(
+  fish_id = fish_number,
+  block = rep(1:64, each = 4),
+  group = Group,
+  gono_length = Gono_length,
+  body_length = Body_length,
+  mating = mated,
+  age = age,
+  offspring_numbers = offspring_numbers
+)
+
+
+```
+
+
+Provide at least one plot showing your simulated data. Choose a plot that highlights the experimental effect.
+
+```{r plot-simulation}
+ggplot(simulated_data, aes(x = age, y = offspring_numbers)) +
+  geom_boxplot(aes(fill = mating), alpha = .6) +
+  scale_fill_brewer(palette = "Set2") +
+  geom_jitter(alpha = .5) +
+  labs(x = "Treatment", y = "Number of Offspring") +
+  theme_minimal()
+```
+
+This plot has shown the treatment effect on the number of offspring. With old age and mated will increase the number of offspring. Age also interact with experiment, and will increase the number of offspring when a male is both mated and old.
+
+```{r}
+ggplot(simulated_data, aes(x = offspring_numbers)) + 
+  geom_histogram() +
+  facet_wrap( mating ~ age)
+```
+
+The data is discrete and there is a high amount of data at 0, therefore, for the following model, negative binomial should be used.
+
+Describe the model you will use to analyse your data (i.e. write it down as an equation)
+
+$$ y = \beta_0 + \beta_1 age + \beta_2 exp + \beta_3 age*exp +\epsilon$$
+
+y: number of offspring
+
+beta_0: the baseline
+
+beta_1 * age: the coefficient that describes the change in offspring count for each unit increase in age
+
+beta_2 * exp: the coefficient that describes the change in offspring count for each unit increase in mating experience
+
+beta_3 (age*exp): the coefficient that describes the change in offspring count for each unit under the interaction of age and mating experience
+
+epsilon: random factors/ noise
+
+Apply the model to your simulated data. Check the residuals to confirm fit. 
+
+```{r residuals-simulation}
+paternity <- glmmTMB(offspring_numbers ~ mating*age + mating + age + (1|block) + (1|body_length) + (1|gono_length), ziformula = ~1, family = nbinom2(link = "log"), data = simulated_data)
+
+plot(simulateResiduals(paternity))
+```
+ 
+Since the number of offspring is not continuous variable outcome, generalized linear model will be used. The mating experience and age is the experimental effect, while the block, body length and gonopodium length are all randomized effect in this experiment. Negative binomial is chosen because there are two sharp peaks, the larger one is at 0. Since there is a certain amount of 0 data, zero-inflated is applied to fit the model better and with link = log confirming all the value is positive, as it is impossible for number of offspring being negative.
+
+The residual simulation has shown the data is not very normally distributed, as not all point lie on the red line in QQ plot. From observing the within-group deviations from uniformity (on the right), there is no red box-plot, which means the data is not having significant deviation.
+
+```{r}
+summary(paternity)
+```
+
+From the simulation, all random effect has a similar variation added to the outcome, but is small effect. For treatment effect, both age and mating experience have a significant effect on the outcome, but the interaction of of age and mating experience is not significantly associated with the outcome.
+ 
+Show the results from your model. You may wish to use `emmeans` or other packages introduced in class. Check how well your model "finds" the parameters you set in your simulation.
+
+```{r model-simulation}
+simulated_est <- emmeans(paternity, ~ age*mating, type = "response") |>
+  as_tibble()
+
+ggplot(simulated_est, aes(age, response, col = mating)) +
+  geom_point(position = position_dodge(width = .5)) +
+  geom_linerange(
+    aes(ymin = response - SE, ymax = response + SE), 
+    position = position_dodge(width = .5)) +
+  theme_minimal() +
+  labs(x = "Age", col = "Mating experience", y = "Response")
+```
+
+The emmanes has shown an estimation as expected, with varied mean but similar variation in different treatment, whereas old-mated has the highest mean, followed by old-naive, young-mated and young-naive. 
+
+(If the model does not return something close to your simulated parameters, you may not have the correct model for your data! Make sure you discuss this problem if this is the case even if you can't correct your model.)
+
+
+## The Actual Data
+
+Assignment #7 required that you use the actual data from yout paper to produce some exploratory plots and fit a model. This section should follow a similar structure. 
+
+```{r, include=FALSE}
+result <- read_csv("Final Project Papers-20230822/Fish Behaviour 1/Aich Bonnet 2021 paternity.csv")
+```
+
+
+### Data Exploration
+
+Use this code chunk to interrogate the structure of the data and "wrangle" it if necessary, including any modification of classes (e.g. from numeric to factor).
+
+```{r wrangle-data}
+str(result)
+result <- clean_names(result)
+```
+
+The data is originally clean as all string are matched, but names are cleaned.
+
+Provide some summary statistics on the data (note relevant summaries, not just `summary` for every variable).
+
+```{r summary-stats}
+summary(result)
+```
+
+
+Now inspect the data by creating some preliminary plots of the outcome variable(s) of interest. Add layers that may help you determine how you might model the data:
+
+For example: See plots created in the 'mixed models lecture'.
+
+```{r prelimplot1}
+ggplot(result, aes(x = age, y = no_offspring)) +
+  geom_boxplot( alpha = .6, aes(fill = exp)) +
+  scale_fill_brewer(palette = "Set2") +
+  geom_jitter(alpha = .5) +
+  labs(x = "Treatment", y = "Number of Offspring", color = "Mating Experience") +
+  theme_minimal()
+```
+
+There is a lot of 0 data in the result, we can observe the old-mated (OE) have the highest upper IQR followed by old-naive (ON). While young-mated (YE) and young-naive(YN) have a upperr IQR close to 0, indicating, and with less data distributed above 5 number of offspring. This has shown the effect of age is significant.
+
+```{r prelimplot2}
+ggplot(result, aes(x = no_offspring)) +
+  geom_histogram() +
+  labs(x = "number of offspring")
+  facet_wrap(exp ~ age)
+```
+
+The histogram has showed the data is discrete. We can see the data is slightly varied in each group, with young-naive has the most unique pattern, without any data for 6 and 7 number of offspring. Young-mated and young-naive have a similar amount of 0, while old-mated and old-naive also hav a similar amount of 0.
+
+
+```{r prelimplot3}
+result |> 
+  group_by(treatment) |>
+  summarise(mean = mean(no_offspring), sd = sd(no_offspring))
+```
+
+Since the above figures are not able to show the mean, here we summarise a table to observe the mean and sd in each treatment. As seen above, the old-mated (OE) treatment has the highest mean, followed by old-naive, young-naive and young-mated. The data variation in old-matedm old-naive and young-naive are similar, while young-mated treatment has the less varied pattern.
+
+The mating experience effect on the number offspring is not as strong as what was expected during the simulation. However, the age has obviously make an impact on the number of offspring, the interaction of age and mating experience is believed to present too, due to a significant higher mean in old-mated compared to old-naive.  
+
+Write a short discussion of the outcome variable(s) appear to be distributed, for example:
+
+    - Are they continuous or discrete?
+    - If they are continuous do they have a symmetric distribution or is it skewed?
+    - If they are discrete, how many levels of categories? Is there a logical order to them?
+
+The outcome variables are discrete.The range of the number of offspring in all treatments are between 0 to 10. All treatments have more than half of the data are 0.
+    
+    
+### Decide on a Model
+
+Based on what has been discussed in class, decide on a sensible model to answer your research question. The model choice should be informed by:
+
+    - The research question 
+    - The form/distribution of your outcome variable (i.e. if it is a binary variable you may need a generalised linear model) 
+    - The experimental design (i.e. what are the sources of variation that may have an impact on the outcome variable?)
+
+__Research question:__
+
+How does age and mating behavior affect the paternity (number of offspring)?
+
+
+__Distribution:__
+
+The outcome variable have showed a right-skewed distribution, which can be also consider as a negative binomial distribution.
+
+__Experimental Design:__
+
+X (Treatment effect): age and mating behavior, with four group (old-mated [OE], old-naive [ON], young-mated [YE], young-naive [YN])
+
+Y: paternity (number of offspring)
+
+Randomized effect: gonopodium length, body length and block
+
+
+### Assess Model Fit
+
+Use an appropriate tool to assess the fit of your model, this will depend on what kind of model you have used. You may need packages like `ggResidpanel` or `DHARMa`.
+
+Discuss the results and make any necessary adjustments to your model
+
+```{r model-fit}
+result_model <- glmmTMB(no_offspring ~ exp*age + age + exp + (1|block) + (1|body_length) + (1|gono_length), family = nbinom2(link = "log"), data = result)
+
+plot(simulateResiduals(result_model))
+```
+
+The result is not normally distributed since there is a point not lining on the redline in QQ-plot. It is also significantly varied a one group. I have thought of using the ziformula, but it is going to shift the estimation below, to naive mating experience with a higher mean when zeros are inflated. Therefore, it might not be a good idea to inflat zero, although the distribution and variation from simulateresidual will be better (more normally distributed and no significant variation among groups).
+
+```{r}
+summary(result_model)
+```
+
+According to the summary, only body_length has a slight effect leading to the variation of number of offspring, while all the other random effects do not have a significant effect. While for the experimental effect, only age is considered to be significantly associated with the result.
+
+### Interpret the Results
+
+Show the estimates from your model and discuss the results. 
+
+Produce at least one plot to display your results in a meaningful way.
+
+```{r resultsplot1}
+result_est <- emmeans(result_model, ~ age*exp, type = "response") |>
+  as_tibble()
+
+ggplot(result_est, aes(age, response, col = exp)) +
+  geom_point(position = position_dodge(width = .5)) +
+  geom_linerange(
+    aes(ymin = response - SE, ymax = response + SE), 
+    position = position_dodge(width = .5)) +
+  theme_minimal() +
+  labs(x = "Age", col = "Mating experience", y = "Response")
+```
+
+The estimation is as expected, very similar to the exploratory data, where different treatment group will leads to a different pattern of number of offspring. The age effect is stronger than the mating experience effect, since the difference between age group is more obvious than between mating experience. However, interaction effect is not very strongly supported in the estimation. Also, we can note that there is a positive correlation for age, but a unknown correlation for mating experience.
+
+```{r}
+Anova(result_model)
+```
+
+From the Anova test, we can see whether the effects are significant, and it is observed that, only the age effect is significant, which is a similar finding with the estimation plot above but is not alligned with our simulation.
+
+## Discussion
+
+### Experimental Design
+
+Use what you've learned this semester to critique the experimental design. If your study was observational rather than an experiment, discuss some of the limitations in the study as a result.
+
+This study is an experimental design. The purpose of this paper is to address the impact of male age and mating history independently on pre-copulatory mating behavior and post-copulatory paternity success to bring insight into the correlation of age, mating experience, sexual selection and reproduction outcome. In this report, we have only highlighted the impact of the treatment group to the paternity success by quantifying the number of offspring produced from different treatment group.
+
+To establish this study, X variable in this study is the age and mating experience, Y variable is the paternity success (number of offspring). Two groups are divided from each X variables, leading to 4 treatment group (old-mated, old-naive, young-mated, young-naive). Randomised effect were also added when assigning fish to block randomly, and also have male fish were randomly assigned to the treatment within a range of gonopodium length and body length.
+
+All blocks were set at the same size and same temperature to reduce environment factor that might effect the result. To minimize the effect of genetic variation, fish were produced and obtained randomly from 400 fishes mating placing in the same breeding tank with 200 F, and 200 M.
+
+### Data Visualisation
+
+Compare the plots you produced to those in the original paper. Do you think the data visualisation used by the original authors was effective? 
+
+The plots from the paper are effective. We both have used boxplot for the number of offspring, but the author has added an "errorbar" with a point representing the mean in each group, allowing a more neat and informative figure. While I have separrated these information into a plot and a table. 
+
+The author have also tried to show the effect size (Hedges’ g) of mating and age with 95% interval, summarizing the whole result in an effective and clear way.
+
+### Modelling
+
+Did you chose the same modelling approach as the original authors? Why/why not?
+Did you get the same results for effect size as the original authors? 
+
+Yes I have chose the same modelling approach as the author, which is the glmm. Because I can observe the number of offspring is impossible to be continuous, and glmm is more fit for a discrete variable outcome. Both of my model and the author's model have also applied negative binomial, due to the right-skewdistribution obtained in the outcome.
+
+The direction of the estimate value in both my report and the paper are the same, but the value are not similar. The p value of my effect size and the paper is not the same too, in the paper Age (Young): Mating history (naive) is the only significant effect, while in my summary of the glmm model, age is the only significant effect, interaction effect is not found too.
+
+### Further Work
+
+Did you identify any limitations in the original paper? What might you do to improve the study?
+
+Most number of offspring in the result are 0 no matter in which treatment group, this might has indicated the fertility of female fish or male fish is not balanced. The reason of a low fertility might due to the genetic variation, although randomized effect is added on the genetic variation, it might be a better option to select fish with a better fertility, hence have a more significant result. 
+
+Therefore, in the future study, I think the mating male and female to produce the experinmental fish can only be male and female fish with a higher fertility history. This is possible if separate  fishes into groups and mating them for few generations, then selecting the group with a overall higher offspring and randomly obtaining their offspring. Hence, probably can allow a result with less 0 data. Or, it is also possible to increase the sample in the future study for a more accurate result, if 60% of male fish is expected to produce 0 offspring.
+
+
+
+
