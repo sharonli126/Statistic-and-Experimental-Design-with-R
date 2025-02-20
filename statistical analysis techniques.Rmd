@@ -1,0 +1,71 @@
+---
+title: "statistical analysis techniques"
+author: "Sharon"
+date: "2023-08-23"
+output: html_document
+---
+
+```{r, echo=FALSE}
+library(tidyverse)
+library(ggbeeswarm)
+library(emmeans)
+library(ggResidpanel)
+```
+
+Loading data
+
+```{r}
+fig_c <-  Kho_2018_Blood_paper_raw_data_Fig1Ci <- read_csv("Data sets for Weeks 5-6 (Lecture 9 amp 10)-20230823/Kho 2018 Blood paper raw data Fig1Ci.csv")
+
+fig_1d <- Kho_2018_Blood_paper_Fig_1Di <- read_csv("~/Downloads/Data sets for Weeks 5-6 (Lecture 9 amp 10)-20230823/Kho 2018 Blood paper Fig 1Di.csv")
+
+```
+
+```{r}
+figc_long <- fig_c %>%
+  pivot_longer(cols = 1:5, names_to = "status", values_to = "precent")
+```
+
+
+```{r}
+ggplot(figc_long, aes(status, precent, color = status)) +
+  geom_beeswarm()
+```
+
+```{r}
+model_figc <- lm(log(precent)~status, data = figc_long)
+
+anova(model_figc)
+```
+
+The more samples we have, the better we can get the mean, the SE stand for __Standard Error__ to the mean, it is the uncertainty due to the varaition
+
+type = "response" is the back transform after we have log the data
+
+SE = variation / sqrt(number of sample), the higher the sample number we have, the better we have the mean
+```{r}
+emmeans(model_figc, ~ status, type = "response")
+```
+
+The formula for the t.ratio is log(a) = log(b) = log(a/b)
+```{r}
+emmeans(model_figc, pairwise~ status, type = "response")$contrast
+```
+
+Residual
+Visualize whether there is a pattern (we don't want??)
+We subtracted the mean
+Assumption: is should be normal distribution around the 0
+The left bottom is not useful
+
+The histogram: showing r~N(0,σ)
+Q-Q plot: showing (e_i, r_i), there is one residual bigger than what we are expecting (the point on right top of the plot)
+Residual plot: x = mean, we can see how's the residual distributed, we worry if there is a curve pattern
+```{r}
+resid_panel(model_figc)
+```
+
+```{r}
+lm(data = fig_1d, percent ~ status)
+```
+

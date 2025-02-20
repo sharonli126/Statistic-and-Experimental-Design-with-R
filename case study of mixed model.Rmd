@@ -1,0 +1,153 @@
+---
+title: "Case study for Mixed Models"
+author: "u7630977 Tsz Ching Li"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+This project was completed as part of a workshop with provided guidelines and queations. However, **all the code and answers were created by me**. 
+
+Load libraries here.
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(tidyr)
+library(janitor)
+library(car) # for ANOVA
+```
+
+
+Reference:
+Mantella, Nicole M.; Youngentob, Steven L. (2015). Data from: *Prenatal alcohol exposure increases postnatal acceptability of nicotine odor and taste in adolescent rats* [Dataset]. Dryad. https://doi.org/10.5061/dryad.32875
+
+
+## Background (from abstract)
+
+Human studies indicate that alcohol exposure during gestation not only increases the chance for later alcohol abuse, but also nicotine dependence. The flavor attributes of both alcohol and nicotine can be important determinants of their initial acceptance. Given that alcohol and nicotine have noteworthy chemosensory qualities in common, the researchers investigated whether fetal exposure to alcohol increased the acceptability of nicotine's odor and taste in adolescent rats.
+
+Experiment 2: Experimental set-up
+
+The aim of Experiment 2 was to investigate the effect of alcohol exposure during fetal life on the taste response to nicotine in adolescent rats. 
+
+On fetal development day 5, 22 pregnant rats were separated into groups containing 
+two weight-matched dams (11 dyads) and randomly assigned to one of two maternal exposure groups: 
+
+- alcohol exposed (ET) or 
+
+- free-choice liquid (FCL). 
+
+The experimental subjects were theprogeny. One baby rat of each sex was randomly selected from each dam. Following training, the rats participated in a single 30-min test session for a concentration series of sucrose (0.03, 0.1, 0.2, 0.3,0.6 M) and nicotine (0.1, 0.3, 1.0, 3.0, 6.0 mM) on different days. For a given tastant, the order of presentation for the different concentrations was pseudo-randomized using a balanced Latin Square design.
+ 
+For each tastant (sucrose, nicotine), the statistical framework was:
+
+- Response variables: Latency (sec) to first lick, Average number of licks
+
+- Experimental factors: prenatal exposure (ET or FCL), tastant concentration
+
+- Data structure: RatID (each rat tested under all concentrations)
+
+For this workflow, we'll analyse the nicotine test test. 
+
+Research question: Does pre-natal exposure to alcohol shorten the latency time to first lick?
+
+Import data. Use clean_names() to "clean" the column names. Use pivot_longer to create tidy data for analysis.
+```{r}
+latency_n <- read_xlsx("Brief Access Lick Data.xlsx",
+                  sheet = "Nicotine Ave Response Latency")|>
+  clean_names() |>
+  pivot_longer(cols = starts_with("average_latency"),
+               names_to = "concentration",
+               values_to = "latency",
+               names_prefix = "average_latency_to_first_lick_sec") |>
+  filter(concentration != "_water")
+
+
+```
+
+Understanding the data structure. How many rats? What concentrations of nicotine was each rat exposed to?
+```{r}
+latency_n %>% 
+  tabyl(animal_id, concentration) |>
+  adorn_totals()
+  
+```
+
+Exploratory data analysis. Visualise data using ggplot(). Observe that latency data is right-skewed. Log-transforming data make it look more symmetric. 
+```{r}
+  ggplot(latency_n, aes(x = concentration, y = latency, color = prenatal_exposure)) +
+  geom_boxplot() +
+  geom_point(position = position_dodge(width = .75)) +
+  scale_y_log10()
+```
+  
+Same plot on log10_scale.
+```{r}
+  ggplot(latency_n, aes(x = concentration, y = latency, col = prenatal_exposure)) +
+  geom_line(aes(group = animal_id)) +
+  scale_y_log10() +
+  facet_wrap(~ sex)
+```
+
+We fit a model to the data. Recall that each animal was assessed for each concentration. What happens if we ignore this data structure and treat each observation as an independent observation?
+
+```{r}
+  lm_latency_n <- lm(log(latency) ~ concentration*prenatal_exposure, data = latency_n)
+```
+
+Model assessment. Are the residuals approximately normally distributed? Are the distributions of the the residuals independent of the estimated mean?
+```{r}
+resid_panel(lm_latency_n)
+```
+
+What can we conclude from the analysis of variance table (ANOVA)?
+```{r}
+anova(lm_latency_n)
+```
+
+Use the emmeans package to get estimated means for each concentration and exposure level. 
+```{r}
+emmeans(lm_latency_n, ~prenatal_exposure|concentration, type = "response") # using | can be more tidy
+```
+
+Repeat the analysis taking into account the data structure of the experiment, i.e. repeated observations per animal ID. Does this change our inference?
+
+```{r}
+lmer_latency_n <- lmer(log(latency) ~ concentration*prenatal_exposure + (1|animal_id), data = latency_n)
+```
+
+Model assessment. Are the residuals approximately normally distributed? Are the distributions of the the residuals independent of the estimated mean?
+```{r}
+resid_panel(lmer_latency_n)
+```
+
+What can we conclude from the analysis of variance table (ANOVA)? Try using functions anova() from base R and Anova() from the car package. What are the differences?
+How do the p-values change from the linear model lm()?
+```{r}
+anova(lmer_latency_n)
+```
+
+Use the emmeans package to get estimated means for each concentration and exposure level. 
+```{r}
+emmeans(lmer_latency_n, ~ concentration*prenatal_exposure, type = "response")
+```
+
+Using the linear mixed model, estimate the marginal means for each prenatal exposure group. Does the mean latency increase for the animals in the control group compared with the animals in the exposed group?
+```{r}
+emmeans(lmer_latency_n, pairwise ~ prenatal_exposure, type = "response")
+```
+
+
+ Create final plot summarising the analysis.
+```{r}
+response1 <- emmeans(lmer_latency_n, ~ concentration*prenatal_exposure, type = "response") %>%
+             as_tibble()
+
+response1 %>%
+  ggplot(aes(x = concentration, y = response, col = prenatal_exposure)) +
+  geom_point(position = position_dodge(width = .5)) +
+  geom_linerange(aes(ymin = response-SE, ymax = response + SE),
+                 position = position_dodge(width = .5)) +
+  scale_colour_manual(values = c("red2", "chartreuse2")) +
+  theme_classic()
+```
+ 
